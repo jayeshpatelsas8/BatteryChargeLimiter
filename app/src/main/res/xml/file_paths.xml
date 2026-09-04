@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--
+        Matches getExternalFilesDir(null)/BCL_Logs, which is where Logger.kt
+        writes the log file. Needed so LogViewerActivity can create a
+        content:// URI for the Share button.
+    -->
+    <external-files-path
+        name="bcl_logs"
+        path="BCL_Logs/" />
+</paths>
