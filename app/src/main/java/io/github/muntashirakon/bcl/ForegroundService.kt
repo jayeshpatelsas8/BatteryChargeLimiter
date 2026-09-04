@@ -56,6 +56,7 @@ class ForegroundService : Service() {
     }
 
     override fun onCreate() {
+        Logger.i(TAG, "onCreate() pluggedIn=${Utils.isPhonePluggedIn(this)}")
         isRunning = true
 
         settings.edit().putBoolean(NOTIFICATION_LIVE, true).apply()
@@ -76,15 +77,39 @@ class ForegroundService : Service() {
             .setSmallIcon(R.drawable.ic_notif_charge)
             .setColor(ContextCompat.getColor(this, R.color.colorPrimary))
             .build()
-        startForeground(notifyID, notification)
+        try {
+            startForeground(notifyID, notification)
+        } catch (e: Exception) {
+            // e.g. ForegroundServiceStartNotAllowedException on some OEM/Android
+            // versions if the process was restarted in the background
+            Logger.e(TAG, "startForeground() failed", e)
+            throw e
+        }
 
-        batteryReceiver = BatteryReceiver(this@ForegroundService)
-        registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        try {
+            batteryReceiver = BatteryReceiver(this@ForegroundService)
+            registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        } catch (e: Exception) {
+            Logger.e(TAG, "Failed to create/register BatteryReceiver", e)
+            throw e
+        }
+        Logger.i(TAG, "onCreate() finished successfully")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Logger.i(TAG, "onStartCommand() startId=$startId flags=$flags action=${intent?.action}")
         ignoreAutoReset = false
         return super.onStartCommand(intent, flags, startId)
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        Logger.w(TAG, "onTaskRemoved() - app task was removed/swiped away")
+        super.onTaskRemoved(rootIntent)
+    }
+
+    override fun onLowMemory() {
+        Logger.w(TAG, "onLowMemory()")
+        super.onLowMemory()
     }
 
     fun setNotificationActionText(actionText: String) {
@@ -135,21 +160,30 @@ class ForegroundService : Service() {
     }
 
     override fun onDestroy() {
-        if (autoResetActive && !ignoreAutoReset && prefs.getBoolean(PrefsFragment.KEY_AUTO_RESET_STATS, false)) {
-            Utils.resetBatteryStats(this)
+        Logger.i(
+            TAG,
+            "onDestroy() autoResetActive=$autoResetActive ignoreAutoReset=$ignoreAutoReset " +
+                "pluggedIn=${Utils.isPhonePluggedIn(this)}"
+        )
+        try {
+            if (autoResetActive && !ignoreAutoReset && prefs.getBoolean(PrefsFragment.KEY_AUTO_RESET_STATS, false)) {
+                Utils.resetBatteryStats(this)
+            }
+            ignoreAutoReset = false
+
+            settings.edit().putBoolean(NOTIFICATION_LIVE, false).apply()
+            // unregister the battery event receiver
+            unregisterReceiver(batteryReceiver)
+
+            // make the BatteryReceiver and dependencies ready for garbage-collection
+            batteryReceiver!!.detach(this)
+            // clear the reference to the battery receiver for GC
+            batteryReceiver = null
+        } catch (e: Exception) {
+            Logger.e(TAG, "Exception during onDestroy()", e)
+        } finally {
+            isRunning = false
         }
-        ignoreAutoReset = false
-
-        settings.edit().putBoolean(NOTIFICATION_LIVE, false).apply()
-        // unregister the battery event receiver
-        unregisterReceiver(batteryReceiver)
-
-        // make the BatteryReceiver and dependencies ready for garbage-collection
-        batteryReceiver!!.detach(this)
-        // clear the reference to the battery receiver for GC
-        batteryReceiver = null
-
-        isRunning = false
     }
 
     override fun onBind(intent: Intent): IBinder? {
@@ -157,6 +191,8 @@ class ForegroundService : Service() {
     }
 
     companion object {
+        private const val TAG = "ForegroundService"
+
         /**
          * Returns whether the service is running right now
          *
