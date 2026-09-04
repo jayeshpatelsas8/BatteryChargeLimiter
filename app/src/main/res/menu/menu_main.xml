@@ -3,6 +3,11 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context=".activities.MainActivity">
     <item
+        android:id="@+id/view_logs"
+        android:title="@string/view_logs"
+        android:icon="@drawable/ic_menu_about"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/about"
         android:title="@string/about"
         android:icon="@drawable/ic_menu_about"
