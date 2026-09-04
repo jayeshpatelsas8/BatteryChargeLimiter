@@ -117,6 +117,7 @@ class MainActivity : AppCompatActivity() {
         when (item.itemId) {
             R.id.about -> displayAboutDialog()
             R.id.action_settings -> startActivity(Intent(this, SettingsActivity::class.java))
+            R.id.view_logs -> startActivity(Intent(this, LogViewerActivity::class.java))
         }
         return true
     }
