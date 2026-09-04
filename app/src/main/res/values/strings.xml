@@ -5,6 +5,16 @@
     <string name="source_code" translatable="false"><a href="https://github.com/sriharshaarangi/BatteryChargeLimit">Source Code</a></string>
     <string name="xda_thread" translatable="false"><a href="https://forum.xda-developers.com/android/apps-games/root-battery-charge-limit-t3557002/">XDA Thread</a></string>
     <string name="about">About</string>
+    <string name="view_logs">View Logs</string>
+    <string name="log_file_location">Log file location</string>
+    <string name="log_refresh">Refresh</string>
+    <string name="log_copy_path">Copy path</string>
+    <string name="log_share">Share</string>
+    <string name="log_clear">Clear</string>
+    <string name="log_path_copied">Path copied to clipboard</string>
+    <string name="log_cleared">Log cleared</string>
+    <string name="log_share_chooser_title">Share BCL log</string>
+    <string name="log_share_failed">Could not share log file (%1$s)</string>
     <string name="disable_charge_now">Disable charge now</string>
     <string name="limit_by_voltage">Limit by voltage</string>
     <string name="custom_voltage_threshold">Custom Voltage threshold</string>
