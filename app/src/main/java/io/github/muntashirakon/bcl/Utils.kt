@@ -304,10 +304,12 @@ object Utils {
     }
 
     fun stopService(context: Context, ignoreAutoReset: Boolean = true) {
+        Logger.i(TAG, "stopService(ignoreAutoReset=$ignoreAutoReset) pluggedIn=${isPhonePluggedIn(context)}")
         val wasServiceRunning = ForegroundService.isRunning
         if (ignoreAutoReset) {
             ForegroundService.ignoreAutoReset()
         }
+        
         context.stopService(Intent(context, ForegroundService::class.java))
         if (!getPrefs(context).getBoolean(PrefsFragment.KEY_DISABLE_AUTO_RECHARGE, false)) {
             changeState(context, CHARGE_ON)
