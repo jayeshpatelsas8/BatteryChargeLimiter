@@ -15,6 +15,10 @@ class App: Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Initialize the file logger as early as possible so it can also
+        // catch crashes that happen shortly after process start.
+        Logger.init(this)
+        Logger.i("App", "Application onCreate")
         DynamicColors.applyToActivitiesIfAvailable(this);
     }
 }
