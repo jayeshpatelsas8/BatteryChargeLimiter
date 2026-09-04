@@ -277,7 +277,9 @@ object Utils {
 
     }
 
+
     fun startServiceIfLimitEnabled(context: Context) {
+        Logger.i(TAG, "startServiceIfLimitEnabled() pluggedIn=${isPhonePluggedIn(context)}")
         if (!getSettings(context).getBoolean(CHARGE_LIMIT_ENABLED, false)) {
             return
         }
