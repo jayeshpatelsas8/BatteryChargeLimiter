@@ -60,6 +60,11 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".activities.LogViewerActivity"
+            android:label="@string/view_logs"
+            android:exported="false"
+            android:launchMode="singleTop" />
 
         <receiver
             android:name=".receivers.BootReceiver"
@@ -103,6 +108,16 @@
             android:name=".ForegroundService"
             android:foregroundServiceType="dataSync"
             android:exported="false" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
 </manifest>
