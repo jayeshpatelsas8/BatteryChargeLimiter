@@ -95,19 +95,49 @@ object Utils {
                 "echo \"$newState\" > $file"
             )
         }
+        val fullCommand = switchCommands.joinToString(separator = " && ")
+
+        Logger.d(TAG, "changeState(chargeMode=$chargeMode) file=$file newState=$newState alwaysWrite=$alwaysWrite")
 
         if (alwaysWrite) {
-            Shell.cmd(switchCommands.joinToString(separator = " && ")).submit()
+            Shell.cmd(fullCommand).submit { result ->
+                logShellResult("changeState(write)", fullCommand, result)
+            }
         } else {
-            Shell.cmd("cat $file").submit {
-                if (it.out.size == 0 || it.out[0] != newState) {
+            Shell.cmd("cat $file").submit { readResult ->
+                logShellResult("changeState(read)", "cat $file", readResult)
+                if (readResult.out.size == 0 || readResult.out[0] != newState) {
                     setChangePending()
-                    Shell.cmd(switchCommands.joinToString(separator = " && ")).submit()
+                    Shell.cmd(fullCommand).submit { writeResult ->
+                        logShellResult("changeState(write)", fullCommand, writeResult)
+                    }
                 }
             }
         }
     }
 
+    /**
+     * Logs the outcome of a root-shell command: exit code, stdout and stderr.
+     * Root shell failures (su not granted/revoked, control file missing,
+     * read-only filesystem, etc.) are the most likely explanation when this
+     * app behaves differently on a power bank vs. a wall charger, since some
+     * power banks/OEM charging stacks can affect how the kernel exposes the
+     * charging control file while the service is toggling it.
+     */
+    private fun logShellResult(context: String, command: String, result: Shell.Result) {
+        if (result.isSuccess) {
+            Logger.d(TAG, "$context OK: `$command` -> out=${result.out}")
+        } else {
+            Logger.e(
+                TAG,
+                "$context FAILED (code=${result.code}): `$command`\n" +
+                    "  stdout=${result.out}\n" +
+                    "  stderr=${result.err}"
+            )
+        }
+    }
+    
+   
     private var ctrlFiles: List<ControlFile>? = null
     fun getCtrlFiles(context: Context): List<ControlFile> {
         if (ctrlFiles == null) {
