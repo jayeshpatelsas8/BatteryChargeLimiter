@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import com.topjohnwu.superuser.Shell
 import io.github.muntashirakon.bcl.Constants
+import io.github.muntashirakon.bcl.Logger
 import io.github.muntashirakon.bcl.Utils
 
 /**
@@ -16,6 +17,7 @@ import io.github.muntashirakon.bcl.Utils
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (Intent.ACTION_BOOT_COMPLETED == intent.action) {
+            Logger.i("BootReceiver", "ACTION_BOOT_COMPLETED received")
             Utils.setVoltageThreshold(null, true, context, null)
             Utils.startServiceIfLimitEnabled(context)
             Shell.cmd("cat ${Utils.getVoltageFile()}").submit {
