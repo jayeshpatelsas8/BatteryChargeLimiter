@@ -133,6 +133,11 @@ class BatteryReceiver(private val service: ForegroundService) : BroadcastReceive
             if (!chargedToLimit && batteryLevel < limitPercentage) {
                 if (switchState(CHARGE_FULL)) {
                     Logger.i(TAG, "CHARGE_FULL " + this.hashCode())
+                    Logger.expected(
+                        TAG,
+                        "Writing CHARGE_ON should let the device draw current, rising from " +
+                            "$batteryLevel% toward limit=$limitPercentage%"
+                    )
                     Utils.changeState(service, Utils.CHARGE_ON)
                     service.setNotificationTitle(service.getString(R.string.waiting_until_x, limitPercentage))
                     service.setNotificationIcon(NOTIF_CHARGE)
@@ -150,6 +155,11 @@ class BatteryReceiver(private val service: ForegroundService) : BroadcastReceive
                     chargedToLimit = true
                     // active auto reset on service shutdown
                     service.enableAutoReset()
+                    Logger.expected(
+                        TAG,
+                        "Writing CHARGE_OFF should make the charger stop supplying power now that " +
+                            "battery=$batteryLevel% reached limit=$limitPercentage%"
+                    )
                     Utils.changeState(service, Utils.CHARGE_OFF)
 
                     if (preferences.getBoolean(PrefsFragment.KEY_DISABLE_AUTO_RECHARGE, false)) {
@@ -167,14 +177,23 @@ class BatteryReceiver(private val service: ForegroundService) : BroadcastReceive
                 ) {
                     //Double the back off time with every unsuccessful round up to MAX_BACK_OFF_TIME
                     backOffTime = (backOffTime * 2).coerceAtMost(MAX_BACK_OFF_TIME)
-                    Logger.w(
+                    // This is the outcome of the CHARGE_OFF expectation logged above (or of the
+                    // previous cycle's expectation, below): the charger was expected to stop
+                    // supplying power once the limit was reached, but the battery status
+                    // extra still reports CHARGING. Frequent repeats of this ACTUAL line are
+                    // the main symptom of the power-bank issue.
+                    Logger.actual(
                         TAG,
-                        "Charger did not stop supplying power at limit; cycling CHARGE_ON/CHARGE_OFF " +
-                            "(instance ${this.hashCode()}, next retry in ${backOffTime}ms). " +
-                            "This repeating a lot is a common symptom on power banks whose control-file " +
-                            "state doesn't settle the way it does on a wall charger."
+                        "Still BATTERY_STATUS_CHARGING (instance ${this.hashCode()}) - the control file " +
+                            "write did not stop the charger. This is a common symptom on power banks " +
+                            "whose control-file state doesn't settle the way it does on a wall charger."
                     )
                     // if the device did not stop charging, try to "cycle" the state to fix this
+                    Logger.expected(
+                        TAG,
+                        "Cycling CHARGE_ON then CHARGE_OFF (after ${backOffTime}ms) should force the " +
+                            "control file into the OFF state"
+                    )
                     Utils.changeState(service, Utils.CHARGE_ON)
                     // schedule the charging stop command to be executed after CHARGING_CHANGE_TOLERANCE_MS
                     val service = this.service
@@ -188,6 +207,11 @@ class BatteryReceiver(private val service: ForegroundService) : BroadcastReceive
                     service.setNotificationIcon(NOTIF_CHARGE)
                     service.setNotificationTitle(service.getString(R.string.waiting_until_x, limitPercentage))
                     service.setNotificationActionText(service.getString(R.string.disable_temporarily))
+                    Logger.expected(
+                        TAG,
+                        "Writing CHARGE_ON should resume charging now that battery dropped to " +
+                            "$batteryLevel% below recharge threshold $rechargePercentage%"
+                    )
                     Utils.changeState(service, Utils.CHARGE_ON)
                     stopIfUnplugged()
                 }
