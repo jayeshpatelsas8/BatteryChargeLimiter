@@ -80,7 +80,7 @@
 
     </PreferenceCategory>
 
-        <PreferenceCategory
+    <PreferenceCategory
         android:title="@string/advanced_settings"
         app:iconSpaceReserved="false">
 
@@ -93,7 +93,9 @@
         <SwitchPreferenceCompat
             app:iconSpaceReserved="false"
             android:key="disable_auto_recharge"
-
+            android:title="@string/disable_auto_recharge"
+            android:summary="@string/disable_auto_recharge_desc"
+            android:defaultValue="false" />
 
         <SwitchPreferenceCompat
             app:iconSpaceReserved="false"
