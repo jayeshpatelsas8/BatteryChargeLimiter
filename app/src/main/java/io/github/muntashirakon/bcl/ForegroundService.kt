@@ -78,18 +78,24 @@ class ForegroundService : Service() {
             .setColor(ContextCompat.getColor(this, R.color.colorPrimary))
             .build()
         try {
+            Logger.expected(TAG, "startForeground() should succeed and keep this service alive while charging is managed")
             startForeground(notifyID, notification)
+            Logger.actual(TAG, "startForeground() succeeded")
         } catch (e: Exception) {
             // e.g. ForegroundServiceStartNotAllowedException on some OEM/Android
             // versions if the process was restarted in the background
+            Logger.actual(TAG, "startForeground() threw ${e.javaClass.simpleName}: ${e.message}")
             Logger.e(TAG, "startForeground() failed", e)
             throw e
         }
 
         try {
+            Logger.expected(TAG, "Registering BatteryReceiver should let the service react to ACTION_BATTERY_CHANGED")
             batteryReceiver = BatteryReceiver(this@ForegroundService)
             registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+            Logger.actual(TAG, "BatteryReceiver registered successfully")
         } catch (e: Exception) {
+            Logger.actual(TAG, "registerReceiver() threw ${e.javaClass.simpleName}: ${e.message}")
             Logger.e(TAG, "Failed to create/register BatteryReceiver", e)
             throw e
         }
