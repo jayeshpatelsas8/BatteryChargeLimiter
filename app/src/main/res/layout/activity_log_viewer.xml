@@ -31,8 +31,8 @@
             android:orientation="vertical"
             android:paddingStart="16dp"
             android:paddingEnd="16dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp">
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp">
 
             <com.google.android.material.textview.MaterialTextView
                 android:layout_width="match_parent"
@@ -48,8 +48,19 @@
                 android:layout_marginTop="2dp"
                 android:textIsSelectable="true"
                 android:fontFamily="monospace"
+                android:textSize="12sp"
+                tools:text="/storage/emulated/0/BCL_Logs/bcl_log_20260904_154210.txt" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/log_root_hint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
                 android:textSize="11sp"
-                tools:text="/storage/emulated/0/Android/data/io.github.muntashirakon.bcl/files/BCL_Logs/bcl_log.txt" />
+                android:textColor="?attr/colorError"
+                android:visibility="gone"
+                android:text="@string/log_no_root_hint"
+                tools:visibility="visible" />
 
         </LinearLayout>
 
@@ -58,11 +69,13 @@
             android:layout_height="wrap_content" />
 
         <ScrollView
+            android:id="@+id/log_scroll"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
             android:fillViewport="true"
-            android:padding="12dp">
+            android:padding="12dp"
+            android:scrollbars="vertical">
 
             <com.google.android.material.textview.MaterialTextView
                 android:id="@+id/log_content"
@@ -70,54 +83,11 @@
                 android:layout_height="wrap_content"
                 android:fontFamily="monospace"
                 android:textIsSelectable="true"
-                android:textSize="11sp"
+                android:textSize="12sp"
+                android:lineSpacingExtra="3dp"
                 tools:text="Loading log…" />
 
         </ScrollView>
-
-        <com.google.android.material.divider.MaterialDivider
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="8dp">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_refresh"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/log_refresh" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_copy_path"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/log_copy_path" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_share"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/log_share" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_clear"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/log_clear" />
-
-        </LinearLayout>
 
     </LinearLayout>
 
