@@ -61,11 +61,12 @@ class MainActivity : AppCompatActivity() {
      * whole app refused to start until that resolved.
      */
     private fun checkRootAndProceed() {
+        Logger.expected(TAG, "Requesting root (su) access so the app can control charging")
         Shell.getShell { shell ->
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 if (shell.isRoot) {
-                    Logger.i(TAG, "Root access confirmed")
+                    Logger.actual(TAG, "Root access granted")
                     rootWarningBanner.visibility = View.GONE
                     // control-file validation itself needs root to probe candidate
                     // files, so only run it once we actually know root is available -
@@ -73,7 +74,7 @@ class MainActivity : AppCompatActivity() {
                     // the device isn't supported.
                     checkForControlFiles()
                 } else {
-                    Logger.w(TAG, "No root access - app UI will still load, but charging control is disabled")
+                    Logger.actual(TAG, "Root access NOT granted - charging control is disabled, showing warning banner")
                     rootWarningBanner.visibility = View.VISIBLE
                 }
             }
