@@ -97,17 +97,24 @@ object Utils {
         }
         val fullCommand = switchCommands.joinToString(separator = " && ")
 
+
         Logger.d(TAG, "changeState(chargeMode=$chargeMode) file=$file newState=$newState alwaysWrite=$alwaysWrite")
 
         if (alwaysWrite) {
+            Logger.expected(TAG, "Root command should exit 0 and set control file to '$newState': `$fullCommand`")
             Shell.cmd(fullCommand).submit { result ->
                 logShellResult("changeState(write)", fullCommand, result)
             }
         } else {
+            Logger.expected(TAG, "Reading control file $file should return its current value")
             Shell.cmd("cat $file").submit { readResult ->
                 logShellResult("changeState(read)", "cat $file", readResult)
                 if (readResult.out.size == 0 || readResult.out[0] != newState) {
                     setChangePending()
+                    Logger.expected(
+                        TAG,
+                        "Root command should exit 0 and set control file to '$newState': `$fullCommand`"
+                    )
                     Shell.cmd(fullCommand).submit { writeResult ->
                         logShellResult("changeState(write)", fullCommand, writeResult)
                     }
@@ -126,17 +133,15 @@ object Utils {
      */
     private fun logShellResult(context: String, command: String, result: Shell.Result) {
         if (result.isSuccess) {
-            Logger.d(TAG, "$context OK: `$command` -> out=${result.out}")
+            Logger.actual(TAG, "$context succeeded: `$command` -> out=${result.out}")
         } else {
-            Logger.e(
+            Logger.actual(
                 TAG,
-                "$context FAILED (code=${result.code}): `$command`\n" +
+                "$context FAILED (exit code=${result.code}): `$command`\n" +
                     "  stdout=${result.out}\n" +
                     "  stderr=${result.err}"
             )
         }
-    }
-    
    
     private var ctrlFiles: List<ControlFile>? = null
     fun getCtrlFiles(context: Context): List<ControlFile> {
