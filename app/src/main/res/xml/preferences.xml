@@ -80,16 +80,19 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory
+        <PreferenceCategory
         android:title="@string/advanced_settings"
         app:iconSpaceReserved="false">
+
+        <Preference
+            app:iconSpaceReserved="false"
+            android:key="log_location"
+            android:title="@string/log_location_pref_title"
+            android:summary="@string/log_location_pref_summary_unavailable" />
 
         <SwitchPreferenceCompat
             app:iconSpaceReserved="false"
             android:key="disable_auto_recharge"
-            android:title="@string/disable_auto_recharge"
-            android:summary="@string/disable_auto_recharge_desc"
-            android:defaultValue="false" />
 
 
         <SwitchPreferenceCompat
