@@ -13,10 +13,12 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.pm.PackageInfoCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.topjohnwu.superuser.Shell
 import io.github.muntashirakon.bcl.BuildConfig
 import io.github.muntashirakon.bcl.Constants.SETTINGS_VERSION
+import io.github.muntashirakon.bcl.Logger
 import io.github.muntashirakon.bcl.R
 import io.github.muntashirakon.bcl.Utils
 import io.github.muntashirakon.bcl.settings.CtrlFileHelper
@@ -28,6 +30,7 @@ import java.util.*
 class MainActivity : AppCompatActivity() {
     private var preferenceChangeListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
     private lateinit var prefs: SharedPreferences
+    private lateinit var rootWarningBanner: MaterialCardView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         prefs = Utils.getPrefs(this)
@@ -37,26 +40,44 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         setSupportActionBar(findViewById(R.id.toolbar))
         setTitle(R.string.app_name)
+        rootWarningBanner = findViewById(R.id.root_warning_banner)
 
-        // Exit immediately if no root support
-        if (!Shell.getShell().isRoot) {
-            showNoRootDialog()
-            return
-        }
+        // Always show the UI immediately. Root is checked asynchronously below so a
+        // slow, denied, or absent su grant never prevents the app from starting - the
+        // person can still look around; a banner explains that charging control won't
+        // work without root.
         updateSettingsVersion()
-        checkForControlFiles()
         whitelistIfFirstStart()
-        // Load main fragment
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, MainFragment())
             .commit()
+
+        checkRootAndProceed()
     }
 
-    private fun showNoRootDialog() {
-        MaterialAlertDialogBuilder(this@MainActivity)
-            .setMessage(R.string.root_denied)
-            .setCancelable(false)
-            .setPositiveButton(R.string.ok) { _, _ -> finish() }.show()
+    /**
+     * Checks root access without blocking the calling (main) thread - acquiring su
+     * can be slow, or require a user prompt from Magisk/SuperSU, and previously the
+     * whole app refused to start until that resolved.
+     */
+    private fun checkRootAndProceed() {
+        Shell.getShell { shell ->
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                if (shell.isRoot) {
+                    Logger.i(TAG, "Root access confirmed")
+                    rootWarningBanner.visibility = View.GONE
+                    // control-file validation itself needs root to probe candidate
+                    // files, so only run it once we actually know root is available -
+                    // otherwise every candidate "fails" and the app wrongly claims
+                    // the device isn't supported.
+                    checkForControlFiles()
+                } else {
+                    Logger.w(TAG, "No root access - app UI will still load, but charging control is disabled")
+                    rootWarningBanner.visibility = View.VISIBLE
+                }
+            }
+        }
     }
 
     private fun checkForControlFiles() {
