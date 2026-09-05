@@ -72,6 +72,11 @@ class BatteryReceiver(private val service: ForegroundService) : BroadcastReceive
         backOffTime = CHARGING_CHANGE_TOLERANCE_MS
         limitPercentage = settings.getInt(LIMIT, 80)
         rechargePercentage = settings.getInt(MIN, limitPercentage - 2)
+        Logger.expected(
+            TAG,
+            "Full charge cycle: charging should START when battery drops to " +
+                "$rechargePercentage% or below, and STOP when battery reaches $limitPercentage% or above"
+        )
         // manually fire onReceive() to update state if service is enabled
         onReceive(service, service.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))!!)
     }
@@ -119,6 +124,24 @@ class BatteryReceiver(private val service: ForegroundService) : BroadcastReceive
             "onReceive() level=$batteryLevel status=$currentStatus plugged=$plugged " +
                 "lastState=$lastState chargedToLimit=$chargedToLimit limit=$limitPercentage recharge=$rechargePercentage"
         )
+        // Continuous, human-readable measurement of the whole charge cycle, tick by tick,
+        // so the log reads as a full journey rather than only the state-change moments -
+        // e.g. "measuring battery=8% ... measuring battery=9% ... battery=10% reached the
+        // upper limit, charging must stop now". Compare this against the EXPECTED cycle
+        // bounds logged once in reset() above.
+        val statusName = when (currentStatus) {
+            BatteryManager.BATTERY_STATUS_CHARGING -> "CHARGING"
+            BatteryManager.BATTERY_STATUS_DISCHARGING -> "DISCHARGING"
+            BatteryManager.BATTERY_STATUS_FULL -> "FULL"
+            BatteryManager.BATTERY_STATUS_NOT_CHARGING -> "NOT_CHARGING"
+            else -> "UNKNOWN($currentStatus)"
+        }
+        val positionNote = when {
+            batteryLevel >= limitPercentage -> "AT/ABOVE upper limit $limitPercentage% - charging must be OFF"
+            batteryLevel <= rechargePercentage -> "AT/BELOW recharge threshold $rechargePercentage% - charging must be ON"
+            else -> "between bounds [$rechargePercentage%..$limitPercentage%] - no state change expected"
+        }
+        Logger.actual(TAG, "measuring battery=$batteryLevel% status=$statusName - $positionNote")
 
         val preferences = PreferenceManager.getDefaultSharedPreferences(context)
         val showTempInNotif = preferences.getBoolean("temp_in_notif", false)
@@ -133,6 +156,10 @@ class BatteryReceiver(private val service: ForegroundService) : BroadcastReceive
             if (!chargedToLimit && batteryLevel < limitPercentage) {
                 if (switchState(CHARGE_FULL)) {
                     Logger.i(TAG, "CHARGE_FULL " + this.hashCode())
+                    Logger.actual(
+                        TAG,
+                        "battery=$batteryLevel% is below limit=$limitPercentage% - starting charging now"
+                    )
                     Logger.expected(
                         TAG,
                         "Writing CHARGE_ON should let the device draw current, rising from " +
@@ -147,6 +174,10 @@ class BatteryReceiver(private val service: ForegroundService) : BroadcastReceive
             } else if (batteryLevel >= limitPercentage) {
                 if (switchState(CHARGE_STOP)) {
                     Logger.i(TAG, "CHARGE_STOP " + this.hashCode())
+                    Logger.actual(
+                        TAG,
+                        "battery=$batteryLevel% reached upper limit=$limitPercentage% - charging needs to stop now"
+                    )
                     // play sound only the first time when the limit was reached
                     if (useNotificationSound && !chargedToLimit) {
                         service.setNotificationSound()
@@ -204,6 +235,11 @@ class BatteryReceiver(private val service: ForegroundService) : BroadcastReceive
             } else if (batteryLevel < rechargePercentage) {
                 if (switchState(CHARGE_REFRESH)) {
                     Logger.i(TAG, "CHARGE_REFRESH " + this.hashCode())
+                    Logger.actual(
+                        TAG,
+                        "battery=$batteryLevel% dropped to/below recharge threshold=$rechargePercentage% - " +
+                            "charging needs to start again now"
+                    )
                     service.setNotificationIcon(NOTIF_CHARGE)
                     service.setNotificationTitle(service.getString(R.string.waiting_until_x, limitPercentage))
                     service.setNotificationActionText(service.getString(R.string.disable_temporarily))
