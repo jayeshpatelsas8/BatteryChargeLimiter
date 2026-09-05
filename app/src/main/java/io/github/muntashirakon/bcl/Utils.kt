@@ -141,6 +141,7 @@ object Utils {
                     "  stdout=${result.out}\n" +
                     "  stderr=${result.err}"
             )
+          }
         }
    
     private var ctrlFiles: List<ControlFile>? = null
