@@ -149,9 +149,28 @@ object Logger {
         write("W", tag, msg, tr)
     }
 
+
     fun e(tag: String, msg: String, tr: Throwable? = null) {
         Log.e(tag, msg, tr)
         write("E", tag, msg, tr)
+    }
+
+    /**
+     * Logs what the code is *about to do* and what it expects the outcome to
+     * be, before it happens. Pair with [actual] once the real outcome is
+     * known (which may be immediately, or later in an async callback).
+     * This turns the log into a readable trace of "what the app thinks
+     * should happen" vs "what the device actually did" - e.g.:
+     *   EXPECTED: writing CHARGE_OFF to the control file should stop charging
+     *   ACTUAL:   still BATTERY_STATUS_CHARGING 4000ms after the write
+     */
+    fun expected(tag: String, msg: String) {
+        i(tag, "EXPECTED: $msg")
+    }
+
+    /** The real-world outcome corresponding to a previous [expected] call. */
+    fun actual(tag: String, msg: String) {
+        i(tag, "ACTUAL:   $msg")
     }
 
     private fun write(level: String, tag: String, msg: String, tr: Throwable?) {
