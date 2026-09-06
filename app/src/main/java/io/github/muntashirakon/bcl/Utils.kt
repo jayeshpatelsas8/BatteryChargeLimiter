@@ -1,6 +1,7 @@
 package io.github.muntashirakon.bcl
 
 import android.annotation.SuppressLint
+import android.app.ActivityManager
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -10,6 +11,7 @@ import android.os.BatteryManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.Process
 import android.util.Log
 import android.view.View
 import android.widget.Toast
@@ -182,6 +184,21 @@ object Utils {
             .putString(CHARGE_OFF_KEY, cf.chargeOff).apply()
         //Respawn the service if necessary
         startServiceIfLimitEnabled(context)
+    }
+
+    /**
+     * Returns the name of the OS process this code is currently running in - useful for
+     * confirming, from the log itself, that HeartbeatService is genuinely executing in a
+     * separate process from the main app (":monitor" vs the default package-name process).
+     */
+    fun currentProcessName(context: Context): String {
+        return try {
+            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val pid = Process.myPid()
+            am.runningAppProcesses?.firstOrNull { it.pid == pid }?.processName ?: "unknown"
+        } catch (e: Exception) {
+            "unknown"
+        }
     }
 
     fun isPhonePluggedIn(context: Context): Boolean {
