@@ -18,6 +18,7 @@
     <string name="log_sync_now">Sync to SD card now</string>
     <string name="log_sync_started">Syncing log to SD card…</string>
     <string name="log_no_root_hint">Root not detected - the SD card copy above will not update until root is granted. The Share button still works.</string>
+    <string name="heartbeat_notification_title">Charge diagnostics running</string>
     <string name="root_warning_title">Root not detected</string>
     <string name="root_warning_message">Battery Charge Limiter needs root to control charging. You can look around the app, but charge limits won\'t be enforced until root access is granted.</string>
     <string name="log_location_pref_title">Debug log location</string>
