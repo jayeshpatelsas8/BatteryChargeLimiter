@@ -53,6 +53,15 @@ object Constants {
     const val INTENT_DISABLE_ACTION = BuildConfig.APPLICATION_ID + ".action.DISABLE"
     const val INTENT_CHANGE_LIMIT_ACTION = BuildConfig.APPLICATION_ID + ".action.CHANGE_LIMIT"
     const val FOREGROUND_SERVICE_NOTIFICATION_CHANNEL_ID = BuildConfig.APPLICATION_ID + ".action.FOREGROUND_SERVICE"
+    const val HEARTBEAT_SERVICE_NOTIFICATION_CHANNEL_ID = BuildConfig.APPLICATION_ID + ".action.HEARTBEAT_SERVICE"
+
+    // Cross-process signal from BatteryReceiver (main process) to HeartbeatService
+    // (separate :monitor process) so the heartbeat can keep observing/reporting even
+    // if the main process crashes and stops sending these updates entirely - that
+    // silence is itself detected and logged by HeartbeatService.
+    const val ACTION_RECEIVER_STATE_UPDATE = BuildConfig.APPLICATION_ID + ".action.RECEIVER_STATE_UPDATE"
+    const val EXTRA_SHOULD_CHARGE = "shouldCharge"
+    const val EXTRA_EXPECTED_BIT = "expectedBit"
 
     const val SAVED_PATH_DATA = "saved_ctrl_path_data"
     const val SAVED_ENABLED_DATA = "saved_ctrl_enabled_data"
