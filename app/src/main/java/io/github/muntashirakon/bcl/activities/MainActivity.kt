@@ -17,6 +17,7 @@ import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.topjohnwu.superuser.Shell
 import io.github.muntashirakon.bcl.BuildConfig
+import io.github.muntashirakon.bcl.ChargeStateMonitor
 import io.github.muntashirakon.bcl.Constants.SETTINGS_VERSION
 import io.github.muntashirakon.bcl.Logger
 import io.github.muntashirakon.bcl.R
@@ -41,6 +42,7 @@ class MainActivity : AppCompatActivity() {
         setSupportActionBar(findViewById(R.id.toolbar))
         setTitle(R.string.app_name)
         rootWarningBanner = findViewById(R.id.root_warning_banner)
+        ChargeStateMonitor.checkForHeartbeatGap(this, "AppLaunch")
 
         // Always show the UI immediately. Root is checked asynchronously below so a
         // slow, denied, or absent su grant never prevents the app from starting - the
