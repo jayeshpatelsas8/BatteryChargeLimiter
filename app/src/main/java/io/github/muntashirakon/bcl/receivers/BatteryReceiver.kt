@@ -5,6 +5,7 @@ import android.os.BatteryManager
 import android.os.Handler
 import android.os.Looper
 import androidx.preference.PreferenceManager
+import io.github.muntashirakon.bcl.Constants
 import io.github.muntashirakon.bcl.Constants.CHARGING_CHANGE_TOLERANCE_MS
 import io.github.muntashirakon.bcl.Constants.LIMIT
 import io.github.muntashirakon.bcl.Constants.MAX_BACK_OFF_TIME
@@ -30,6 +31,7 @@ class BatteryReceiver(private val service: ForegroundService) : BroadcastReceive
     private var chargedToLimit = false
     private var useFahrenheit = false
     private var lastState = -1
+    private var currentAttempt = 0
     private var limitPercentage: Int = 0
     private var rechargePercentage: Int = 0
     private val prefs = Utils.getPrefs(service.baseContext)
@@ -90,7 +92,52 @@ class BatteryReceiver(private val service: ForegroundService) : BroadcastReceive
     private fun switchState(newState: Int): Boolean {
         val oldState = lastState
         lastState = newState
+        if (oldState != newState) {
+            // a genuine new policy decision - retries within this same decision get their
+            // own incrementing attempt number, starting fresh for each new decision
+            currentAttempt = 0
+        }
         return oldState != newState
+    }
+
+    /**
+     * Issues a CHARGE_ON/CHARGE_OFF command, logs it as a distinct COMMAND event (including
+     * an attempt number that increments across retries of the *same* policy decision and
+     * resets whenever switchState() records a genuinely new decision), and tells the
+     * ChargeStateMonitor what the control file is now expected to contain so it can verify
+     * that independently.
+     */
+    private fun issueChangeState(chargeMode: Int) {
+        currentAttempt++
+        val expected = if (chargeMode == Utils.CHARGE_ON) {
+            Utils.getCtrlEnabledData(service)
+        } else {
+            Utils.getCtrlDisabledData(service)
+        }
+        Logger.i(
+            TAG,
+            "COMMAND action=${if (chargeMode == Utils.CHARGE_ON) "ENABLE" else "DISABLE"} " +
+                "attempt=$currentAttempt expectedBit=$expected"
+        )
+        // HeartbeatService now runs in a SEPARATE OS process (see android:process=":monitor"
+        // on its manifest entry) specifically so it survives a crash in this process. That
+        // means it can no longer be reached with a plain method call - a broadcast is the
+        // standard, reliable cross-process signal for "here is the latest state".
+        broadcastStateToMonitor(chargeMode == Utils.CHARGE_ON, expected)
+        Utils.changeState(service, chargeMode)
+    }
+
+    private fun broadcastStateToMonitor(shouldCharge: Boolean, expectedBitValue: String) {
+        try {
+            val intent = Intent(Constants.ACTION_RECEIVER_STATE_UPDATE).apply {
+                setPackage(service.packageName)
+                putExtra(Constants.EXTRA_SHOULD_CHARGE, shouldCharge)
+                putExtra(Constants.EXTRA_EXPECTED_BIT, expectedBitValue)
+            }
+            service.sendBroadcast(intent)
+        } catch (e: Exception) {
+            Logger.e(TAG, "Failed to broadcast state to HeartbeatService", e)
+        }
     }
 
     /**
@@ -165,7 +212,7 @@ class BatteryReceiver(private val service: ForegroundService) : BroadcastReceive
                         "Writing CHARGE_ON should let the device draw current, rising from " +
                             "$batteryLevel% toward limit=$limitPercentage%"
                     )
-                    Utils.changeState(service, Utils.CHARGE_ON)
+                    issueChangeState(Utils.CHARGE_ON)
                     service.setNotificationTitle(service.getString(R.string.waiting_until_x, limitPercentage))
                     service.setNotificationIcon(NOTIF_CHARGE)
                     service.setNotificationActionText(service.getString(R.string.disable_temporarily))
@@ -191,7 +238,7 @@ class BatteryReceiver(private val service: ForegroundService) : BroadcastReceive
                         "Writing CHARGE_OFF should make the charger stop supplying power now that " +
                             "battery=$batteryLevel% reached limit=$limitPercentage%"
                     )
-                    Utils.changeState(service, Utils.CHARGE_OFF)
+                    issueChangeState(Utils.CHARGE_OFF)
 
                     if (preferences.getBoolean(PrefsFragment.KEY_DISABLE_AUTO_RECHARGE, false)) {
                         Utils.stopService(service, false)
@@ -225,10 +272,9 @@ class BatteryReceiver(private val service: ForegroundService) : BroadcastReceive
                         "Cycling CHARGE_ON then CHARGE_OFF (after ${backOffTime}ms) should force the " +
                             "control file into the OFF state"
                     )
-                    Utils.changeState(service, Utils.CHARGE_ON)
+                    issueChangeState(Utils.CHARGE_ON)
                     // schedule the charging stop command to be executed after CHARGING_CHANGE_TOLERANCE_MS
-                    val service = this.service
-                    handler.postDelayed({ Utils.changeState(service, Utils.CHARGE_OFF) }, backOffTime)
+                    handler.postDelayed({ issueChangeState(Utils.CHARGE_OFF) }, backOffTime)
                 } else {
                     backOffTime = CHARGING_CHANGE_TOLERANCE_MS
                 }
@@ -248,7 +294,7 @@ class BatteryReceiver(private val service: ForegroundService) : BroadcastReceive
                         "Writing CHARGE_ON should resume charging now that battery dropped to " +
                             "$batteryLevel% below recharge threshold $rechargePercentage%"
                     )
-                    Utils.changeState(service, Utils.CHARGE_ON)
+                    issueChangeState(Utils.CHARGE_ON)
                     stopIfUnplugged()
                 }
             }
