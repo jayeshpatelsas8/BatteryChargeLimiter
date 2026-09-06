@@ -13,6 +13,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.RESET_BATTERY_STATS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:allowBackup="false"
@@ -106,6 +107,17 @@
 
         <service
             android:name=".ForegroundService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false" />
+
+        <!--
+            Runs in its own OS process (":monitor") specifically so a crash anywhere in the
+            main process (ForegroundService/BatteryReceiver/Utils/UI) cannot take the
+            diagnostic heartbeat down with it. See ChargeStateMonitor/HeartbeatService.
+        -->
+        <service
+            android:name=".HeartbeatService"
+            android:process=":monitor"
             android:foregroundServiceType="dataSync"
             android:exported="false" />
 
