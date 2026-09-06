@@ -57,6 +57,7 @@ class ForegroundService : Service() {
 
     override fun onCreate() {
         Logger.i(TAG, "onCreate() pluggedIn=${Utils.isPhonePluggedIn(this)}")
+        ChargeStateMonitor.checkForHeartbeatGap(this, "ServiceRestart")
         isRunning = true
 
         settings.edit().putBoolean(NOTIFICATION_LIVE, true).apply()
@@ -99,6 +100,9 @@ class ForegroundService : Service() {
             Logger.e(TAG, "Failed to create/register BatteryReceiver", e)
             throw e
         }
+        // ChargeStateMonitor now runs inside HeartbeatService, in its own OS process,
+        // so a crash here can't take the heartbeat down with it.
+        HeartbeatService.start(this)
         Logger.i(TAG, "onCreate() finished successfully")
     }
 
@@ -176,6 +180,11 @@ class ForegroundService : Service() {
                 Utils.resetBatteryStats(this)
             }
             ignoreAutoReset = false
+
+            // Normal, intentional stop - the heartbeat isn't needed until charging is
+            // enabled again. A crash bypasses this line entirely, which is exactly the
+            // case HeartbeatService's own process independence is designed to catch.
+            HeartbeatService.stop(this)
 
             settings.edit().putBoolean(NOTIFICATION_LIVE, false).apply()
             // unregister the battery event receiver
